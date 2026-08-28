@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/MachineServiceLab.Api/MachineServiceLab.Api.csproj" />
     <Project Path="src/MachineServiceLab.Desktop/MachineServiceLab.Desktop.csproj" />
   </Folder>
 </Solution>

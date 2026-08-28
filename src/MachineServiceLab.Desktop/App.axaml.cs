@@ -20,7 +20,9 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainViewModel(new SimulatedDeviceTransport()),
+                DataContext = new MainViewModel(
+                    new SimulatedDeviceTransport(),
+                    new CloudApiClient("http://localhost:5163")),
             };
         }
 

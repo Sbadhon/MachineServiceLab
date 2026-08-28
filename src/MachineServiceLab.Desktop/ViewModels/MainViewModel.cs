@@ -11,6 +11,7 @@ namespace MachineServiceLab.Desktop.ViewModels;
 public partial class MainViewModel : ViewModelBase
 {
     private readonly IDeviceTransport _deviceTransport;
+    private readonly CloudApiClient _cloudApiClient;
 
     [ObservableProperty]
     public partial string ConnectionStatus { get; set; } = "Disconnected";
@@ -67,9 +68,10 @@ public partial class MainViewModel : ViewModelBase
     public IAsyncRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand ReadDiagnosticsCommand { get; }
 
-    public MainViewModel(IDeviceTransport deviceTransport)
+    public MainViewModel(IDeviceTransport deviceTransport, CloudApiClient cloudApiClient)
     {
         _deviceTransport = deviceTransport;
+        _cloudApiClient = cloudApiClient;
 
         ConnectCommand = new AsyncRelayCommand(ConnectAsync);
         DisconnectCommand = new AsyncRelayCommand(DisconnectAsync);
@@ -85,6 +87,7 @@ public partial class MainViewModel : ViewModelBase
         ConnectionStatus = "Connecting...";
 
         var machine = await _deviceTransport.ConnectAsync();
+        await _cloudApiClient.RegisterMachineAsync(machine);
 
         Model = machine.Model;
         SerialNumber = machine.SerialNumber;
