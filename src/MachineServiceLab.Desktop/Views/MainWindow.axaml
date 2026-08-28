@@ -5,16 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         d:DesignWidth="800"
-        d:DesignHeight="450"
+        d:DesignHeight="550"
         x:Class="MachineServiceLab.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="700"
-        Height="420"
+        Height="550"
         Title="Machine Service Lab">
 
     <StackPanel
-        Width="320"
-        Spacing="20"
+        Width="360"
+        Spacing="16"
         HorizontalAlignment="Center"
         VerticalAlignment="Center">
 
@@ -34,38 +34,51 @@
             FontSize="16"
             HorizontalAlignment="Center" />
 
-        <TextBlock 
-            Text="{Binding Model}" />
+        <StackPanel
+            Orientation="Horizontal"
+            Spacing="12"
+            HorizontalAlignment="Center">
 
-        <TextBlock 
-            Text="{Binding SerialNumber}" />
+            <Button
+                Content="Connect"
+                Command="{Binding ConnectCommand}"
+                IsEnabled="{Binding !IsConnected}"
+                Padding="24,10" />
 
-        <TextBlock 
-            Text="{Binding FirmwareVersion}" />
+            <Button
+                Content="Disconnect"
+                Command="{Binding DisconnectCommand}"
+                IsEnabled="{Binding IsConnected}"
+                Padding="24,10" />
+
+        </StackPanel>
+
+        <TextBlock Text="Machine Information"
+                   FontSize="18"
+                   FontWeight="SemiBold" />
+
+        <TextBlock Text="{Binding Model}" />
+        <TextBlock Text="{Binding SerialNumber}" />
+        <TextBlock Text="{Binding FirmwareVersion}" />
 
         <Button
             Content="Run Diagnostics"
             Command="{Binding ReadDiagnosticsCommand}"
+            IsEnabled="{Binding IsConnected}"
             HorizontalAlignment="Center"
             Padding="24,10" />
 
-        <TextBlock 
-            Text="{Binding Battery}" />
-        
-        <TextBlock 
-            Text="{Binding ControllerTemperature}" />
+        <TextBlock Text="Diagnostics"
+                   FontSize="18"
+                   FontWeight="SemiBold" />
 
-        <TextBlock 
-            Text="{Binding MachineHours}" />
+        <TextBlock Text="{Binding Battery}" />
+        <TextBlock Text="{Binding ControllerTemperature}" />
+        <TextBlock Text="{Binding MachineHours}" />
 
-        <TextBlock 
-            Text="{Binding Faults}" TextWrapping="Wrap" />
-
-        <Button
-            Content="Connect"
-            Command="{Binding ConnectCommand}"
-            HorizontalAlignment="Center"
-            Padding="24,10" />
+        <TextBlock
+            Text="{Binding Faults}"
+            TextWrapping="Wrap" />
 
     </StackPanel>
 

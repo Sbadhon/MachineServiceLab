@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using MachineServiceLab.Desktop.Models;
 
@@ -5,9 +6,13 @@ namespace MachineServiceLab.Desktop.Services;
 
 public sealed class SimulatedDeviceTransport : IDeviceTransport
 {
+    private bool _isConnected;
+
     public async Task<MachineInfo> ConnectAsync()
     {
         await Task.Delay(1000);
+
+        _isConnected = true;
 
         return new MachineInfo(
             Model: "Scrubber-X1",
@@ -17,6 +22,10 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
 
     public async Task<DiagnosticsSnapshot> ReadDiagnosticsAsync()
     {
+        if (!_isConnected)
+        {
+            throw new InvalidOperationException("Machine is not connected.");
+        }
         await Task.Delay(750);
 
         return new DiagnosticsSnapshot(
@@ -29,5 +38,12 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
                 "F102 - Brush Motor Overcurrent",
                 "F208 - Battery Voltage Low"
             ]);
+    }
+
+    public async Task DisconnectAsync()
+    {
+        await Task.Delay(300);
+
+        _isConnected = false;
     }
 }

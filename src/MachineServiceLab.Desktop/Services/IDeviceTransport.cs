@@ -7,4 +7,5 @@ public interface IDeviceTransport
 {
     Task<MachineInfo> ConnectAsync();
     Task<DiagnosticsSnapshot> ReadDiagnosticsAsync();
+    Task DisconnectAsync();
 }

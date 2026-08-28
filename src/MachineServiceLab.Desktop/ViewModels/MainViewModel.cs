@@ -14,6 +14,9 @@ public partial class MainViewModel : ViewModelBase
     public partial string ConnectionStatus { get; set; } = "Disconnected";
 
     [ObservableProperty]
+    public partial bool IsConnected { get; set; }
+
+    [ObservableProperty]
     public partial string Model { get; set; } = "-";
 
     [ObservableProperty]
@@ -34,16 +37,16 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial string Faults { get; set; } = "-";
 
-    public IAsyncRelayCommand ReadDiagnosticsCommand { get; }
-
     public IAsyncRelayCommand ConnectCommand { get; }
+    public IAsyncRelayCommand DisconnectCommand { get; }
+    public IAsyncRelayCommand ReadDiagnosticsCommand { get; }
 
     public MainViewModel(IDeviceTransport deviceTransport)
     {
         _deviceTransport = deviceTransport;
 
         ConnectCommand = new AsyncRelayCommand(ConnectAsync);
-
+        DisconnectCommand = new AsyncRelayCommand(DisconnectAsync);
         ReadDiagnosticsCommand = new AsyncRelayCommand(ReadDiagnosticsAsync);
     }
 
@@ -57,11 +60,35 @@ public partial class MainViewModel : ViewModelBase
         SerialNumber = machine.SerialNumber;
         FirmwareVersion = machine.FirmwareVersion;
 
+        IsConnected = true;
         ConnectionStatus = "Connected";
+    }
+
+    private async Task DisconnectAsync()
+    {
+        ConnectionStatus = "Disconnecting...";
+
+        await _deviceTransport.DisconnectAsync();
+
+        IsConnected = false;
+        ConnectionStatus = "Disconnected";
+
+        Model = "-";
+        SerialNumber = "-";
+        FirmwareVersion = "-";
+        Battery = "-";
+        ControllerTemperature = "-";
+        MachineHours = "-";
+        Faults = "-";
     }
 
     private async Task ReadDiagnosticsAsync()
     {
+        if (!IsConnected)
+        {
+            return;
+        }
+
         var diagnostics = await _deviceTransport.ReadDiagnosticsAsync();
 
         Battery = $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
