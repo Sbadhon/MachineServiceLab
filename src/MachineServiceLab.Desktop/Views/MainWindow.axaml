@@ -5,124 +5,170 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         d:DesignWidth="800"
-        d:DesignHeight="750"
+        d:DesignHeight="650"
         x:Class="MachineServiceLab.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="700"
-        Height="750"
+        Height="650"
         Title="Machine Service Lab">
 
-    <StackPanel
-        Width="360"
-        Spacing="16"
-        HorizontalAlignment="Center"
-        VerticalAlignment="Center">
-
-        <TextBlock
-            Text="Machine Service Lab"
-            FontSize="28"
-            FontWeight="SemiBold"
-            HorizontalAlignment="Center" />
-
-        <TextBlock
-            Text="Machine Connection"
-            FontSize="18"
-            HorizontalAlignment="Center" />
-
-        <TextBlock
-            Text="{Binding ConnectionStatus}"
-            FontSize="16"
-            HorizontalAlignment="Center" />
+    <ScrollViewer
+        VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Disabled">
 
         <StackPanel
-            Orientation="Horizontal"
-            Spacing="12"
+            Width="360"
+            Spacing="16"
+            Margin="0,30"
             HorizontalAlignment="Center">
 
-            <Button
-                Content="Connect"
-                Command="{Binding ConnectCommand}"
-                IsEnabled="{Binding !IsConnected}"
-                Padding="24,10" />
+            <TextBlock
+                Text="Machine Service Lab"
+                FontSize="28"
+                FontWeight="SemiBold"
+                HorizontalAlignment="Center" />
+
+            <TextBlock
+                Text="Machine Connection"
+                FontSize="18"
+                HorizontalAlignment="Center" />
+
+            <TextBlock
+                Text="{Binding ConnectionStatus}"
+                FontSize="16"
+                HorizontalAlignment="Center" />
+
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="12"
+                HorizontalAlignment="Center">
+
+                <Button
+                    Content="Connect"
+                    Command="{Binding ConnectCommand}"
+                    IsEnabled="{Binding !IsConnected}"
+                    Padding="24,10" />
+
+                <Button
+                    Content="Disconnect"
+                    Command="{Binding DisconnectCommand}"
+                    IsEnabled="{Binding IsConnected}"
+                    Padding="24,10" />
+
+            </StackPanel>
+
+            <TextBlock
+                Text="Machine Information"
+                FontSize="18"
+                FontWeight="SemiBold" />
+
+            <TextBlock Text="{Binding Model}" />
+            <TextBlock Text="{Binding SerialNumber}" />
+            <TextBlock Text="{Binding FirmwareVersion}" />
 
             <Button
-                Content="Disconnect"
-                Command="{Binding DisconnectCommand}"
+                Content="Run Diagnostics"
+                Command="{Binding ReadDiagnosticsCommand}"
                 IsEnabled="{Binding IsConnected}"
+                HorizontalAlignment="Center"
+                Padding="24,10" />
+
+            <TextBlock
+                Text="Diagnostics"
+                FontSize="18"
+                FontWeight="SemiBold" />
+
+            <TextBlock Text="{Binding Battery}" />
+            <TextBlock Text="{Binding ControllerTemperature}" />
+            <TextBlock Text="{Binding MachineHours}" />
+
+            <TextBlock
+                Text="{Binding Faults}"
+                TextWrapping="Wrap" />
+
+            <TextBlock
+                Text="Machine Configuration"
+                FontSize="18"
+                FontWeight="SemiBold" />
+
+            <CheckBox
+                Content="Eco Mode"
+                IsChecked="{Binding EcoMode}"
+                IsEnabled="{Binding IsConnected}" />
+
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="10">
+
+                <TextBlock Text="Brush Pressure:" />
+
+                <NumericUpDown
+                    Value="{Binding BrushPressureLevel}"
+                    Minimum="1"
+                    Maximum="5"
+                    Width="100"
+                    IsEnabled="{Binding IsConnected}" />
+
+            </StackPanel>
+
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="10">
+
+                <TextBlock Text="Max Speed %:" />
+
+                <NumericUpDown
+                    Value="{Binding MaxSpeedPercent}"
+                    Minimum="10"
+                    Maximum="100"
+                    Width="100"
+                    IsEnabled="{Binding IsConnected}" />
+
+            </StackPanel>
+
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="10">
+
+                <Button
+                    Content="Load Configuration"
+                    Command="{Binding LoadConfigurationCommand}"
+                    IsEnabled="{Binding IsConnected}" />
+
+                <Button
+                    Content="Save Configuration"
+                    Command="{Binding SaveConfigurationCommand}"
+                    IsEnabled="{Binding IsConnected}" />
+
+            </StackPanel>
+
+            <TextBlock Text="{Binding ConfigurationStatus}" />
+
+            <!-- Firmware -->
+
+            <TextBlock
+                Text="Firmware"
+                FontSize="18"
+                FontWeight="SemiBold" />
+
+            <TextBlock Text="{Binding FirmwareUpdateStatus}" />
+
+            <ProgressBar
+                Minimum="0"
+                Maximum="100"
+                Value="{Binding FirmwareProgress}"
+                Width="300"
+                Height="18" />
+
+            <Button
+                Content="Update Firmware"
+                Command="{Binding UpdateFirmwareCommand}"
+                IsEnabled="{Binding IsConnected}"
+                HorizontalAlignment="Center"
                 Padding="24,10" />
 
         </StackPanel>
 
-        <TextBlock Text="Machine Information"
-                   FontSize="18"
-                   FontWeight="SemiBold" />
-
-        <TextBlock Text="{Binding Model}" />
-        <TextBlock Text="{Binding SerialNumber}" />
-        <TextBlock Text="{Binding FirmwareVersion}" />
-
-        <Button
-            Content="Run Diagnostics"
-            Command="{Binding ReadDiagnosticsCommand}"
-            IsEnabled="{Binding IsConnected}"
-            HorizontalAlignment="Center"
-            Padding="24,10" />
-
-        <TextBlock Text="Diagnostics"
-                   FontSize="18"
-                   FontWeight="SemiBold" />
-
-        <TextBlock Text="{Binding Battery}" />
-        <TextBlock Text="{Binding ControllerTemperature}" />
-        <TextBlock Text="{Binding MachineHours}" />
-
-        <TextBlock
-            Text="{Binding Faults}"
-            TextWrapping="Wrap" />
-        <TextBlock
-            Text="Machine Configuration"
-            FontSize="18"
-            FontWeight="SemiBold" />
-
-        <CheckBox
-            Content="Eco Mode"
-            IsChecked="{Binding EcoMode}"
-            IsEnabled="{Binding IsConnected}" />
-
-    <StackPanel Orientation="Horizontal" Spacing="10">
-        <TextBlock Text="Brush Pressure:" />
-        <NumericUpDown
-            Value="{Binding BrushPressureLevel}"
-            Minimum="1"
-            Maximum="5"
-            Width="100"
-            IsEnabled="{Binding IsConnected}" />
-    </StackPanel>
-
-    <StackPanel Orientation="Horizontal" Spacing="10">
-        <TextBlock Text="Max Speed %:" />
-        <NumericUpDown
-            Value="{Binding MaxSpeedPercent}"
-            Minimum="10"
-            Maximum="100"
-            Width="100"
-            IsEnabled="{Binding IsConnected}" />
-    </StackPanel>
-
-    <StackPanel Orientation="Horizontal" Spacing="10">
-        <Button
-            Content="Load Configuration"
-            Command="{Binding LoadConfigurationCommand}"
-            IsEnabled="{Binding IsConnected}" />
-
-        <Button
-            Content="Save Configuration"
-            Command="{Binding SaveConfigurationCommand}"
-            IsEnabled="{Binding IsConnected}" />
-    </StackPanel>
-
-    <TextBlock Text="{Binding ConfigurationStatus}" />
-
-    </StackPanel>
+    </ScrollViewer>
 
 </Window>

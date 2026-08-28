@@ -77,4 +77,17 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
             throw new InvalidOperationException("Machine is not connected.");
         }
     }
+
+    public async Task<string> UpdateFirmwareAsync(IProgress<int> progress)
+    {
+        EnsureConnected();
+
+        for (var percent = 10; percent <= 100; percent += 10)
+        {
+            await Task.Delay(300);
+            progress.Report(percent);
+        }
+
+        return "1.1.0";
+    }
 }

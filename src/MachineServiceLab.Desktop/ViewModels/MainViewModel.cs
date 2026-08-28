@@ -49,7 +49,16 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string ConfigurationStatus { get; set; } = "-";
+    [ObservableProperty]
+    public partial int FirmwareProgress { get; set; }
 
+    [ObservableProperty]
+    public partial string FirmwareUpdateStatus { get; set; } = "Ready";
+
+    [ObservableProperty]
+    public partial bool IsFirmwareUpdating { get; set; }
+
+    public IAsyncRelayCommand UpdateFirmwareCommand { get; }
     public IAsyncRelayCommand LoadConfigurationCommand { get; }
     public IAsyncRelayCommand SaveConfigurationCommand { get; }
     public IAsyncRelayCommand ConnectCommand { get; }
@@ -65,6 +74,7 @@ public partial class MainViewModel : ViewModelBase
         ReadDiagnosticsCommand = new AsyncRelayCommand(ReadDiagnosticsAsync);
         LoadConfigurationCommand = new AsyncRelayCommand(LoadConfigurationAsync);
         SaveConfigurationCommand = new AsyncRelayCommand(SaveConfigurationAsync);
+        UpdateFirmwareCommand = new AsyncRelayCommand(UpdateFirmwareAsync);
     }
 
     private async Task ConnectAsync()
@@ -101,6 +111,9 @@ public partial class MainViewModel : ViewModelBase
         BrushPressureLevel = 0;
         MaxSpeedPercent = 0;
         ConfigurationStatus = "-";
+        FirmwareProgress = 0;
+        FirmwareUpdateStatus = "Ready";
+        IsFirmwareUpdating = false;
     }
 
     private async Task ReadDiagnosticsAsync()
@@ -150,5 +163,27 @@ public partial class MainViewModel : ViewModelBase
         await _deviceTransport.UpdateConfigurationAsync(configuration);
 
         ConfigurationStatus = "Configuration saved";
+    }
+
+    private async Task UpdateFirmwareAsync()
+    {
+        if (!IsConnected || IsFirmwareUpdating)
+        {
+            return;
+        }
+
+        IsFirmwareUpdating = true;
+        FirmwareProgress = 0;
+        FirmwareUpdateStatus = "Programming firmware...";
+
+        var progress = new Progress<int>(
+            value => FirmwareProgress = value);
+
+        var newVersion =
+            await _deviceTransport.UpdateFirmwareAsync(progress);
+
+        FirmwareVersion = newVersion;
+        FirmwareUpdateStatus = "Firmware update completed";
+        IsFirmwareUpdating = false;
     }
 }
