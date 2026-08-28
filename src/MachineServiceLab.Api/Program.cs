@@ -99,13 +99,58 @@ app.MapGet("/api/machines/{serialNumber}/diagnostics/latest",
         var diagnostics =
             await db.Diagnostics
                 .Where(x => x.SerialNumber == serialNumber)
-                .OrderByDescending(x => x.CapturedAt)
+                .OrderByDescending(x => x.Id)
                 .FirstOrDefaultAsync();
 
         return diagnostics is null
             ? Results.NotFound()
             : Results.Ok(diagnostics);
     });
+
+app.MapPost("/api/telemetry",
+    async (
+        TelemetryRequest request,
+        AppDbContext db) =>
+        {
+            var machineExists = await db.Machines.AnyAsync(
+                x => x.SerialNumber == request.SerialNumber);
+
+            if (!machineExists)
+            {
+                return Results.NotFound(new
+                {
+                    message = "Machine is not registered."
+                });
+            }
+
+            var telemetry = new TelemetryEntity
+            {
+                SerialNumber = request.SerialNumber,
+                Metric = request.Metric,
+                Value = request.Value,
+                Unit = request.Unit,
+                CapturedAt = DateTimeOffset.UtcNow
+            };
+
+            db.Telemetry.Add(telemetry);
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(telemetry);
+        });
+
+app.MapGet("/api/machines/{serialNumber}/telemetry", async (
+    string serialNumber,
+    AppDbContext db) =>
+{
+    var telemetry = await db.Telemetry
+        .Where(x => x.SerialNumber == serialNumber)
+        .OrderByDescending(x => x.Id)
+        .Take(20)
+        .ToListAsync();
+
+    return Results.Ok(telemetry);
+});
 
 app.Run();
 
@@ -121,3 +166,9 @@ public sealed record DiagnosticsRequest(
     double ControllerTemperatureC,
     double MachineHours,
     string[] FaultCodes);
+
+public sealed record TelemetryRequest(
+    string SerialNumber,
+    string Metric,
+    double Value,
+    string Unit);

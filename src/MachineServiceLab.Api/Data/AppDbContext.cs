@@ -7,6 +7,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
 {
     public DbSet<MachineEntity> Machines => Set<MachineEntity>();
     public DbSet<DiagnosticsEntity> Diagnostics => Set<DiagnosticsEntity>();
+    public DbSet<TelemetryEntity> Telemetry => Set<TelemetryEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -35,6 +36,21 @@ public sealed class DiagnosticsEntity
     public double MachineHours { get; set; }
 
     public required string FaultCodesJson { get; set; }
+
+    public DateTimeOffset CapturedAt { get; set; }
+}
+
+public sealed class TelemetryEntity
+{
+    public int Id { get; set; }
+
+    public required string SerialNumber { get; set; }
+
+    public required string Metric { get; set; }
+
+    public double Value { get; set; }
+
+    public required string Unit { get; set; }
 
     public DateTimeOffset CapturedAt { get; set; }
 }

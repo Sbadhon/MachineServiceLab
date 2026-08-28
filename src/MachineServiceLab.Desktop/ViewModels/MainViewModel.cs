@@ -131,6 +131,9 @@ public partial class MainViewModel : ViewModelBase
 
         var diagnostics = await _deviceTransport.ReadDiagnosticsAsync();
         await _cloudApiClient.UploadDiagnosticsAsync(SerialNumber, diagnostics);
+        await _cloudApiClient.UploadTelemetryAsync(SerialNumber, "BatteryVoltage", diagnostics.BatteryVoltage, "V");
+        await _cloudApiClient.UploadTelemetryAsync(SerialNumber, "ControllerTemperature", diagnostics.ControllerTemperatureC, "C");
+        await _cloudApiClient.UploadTelemetryAsync(SerialNumber, "MachineHours", diagnostics.MachineHours, "hours");
         Battery = $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
         ControllerTemperature = $"{diagnostics.ControllerTemperatureC:F1} °C";
         MachineHours = $"{diagnostics.MachineHours:F1}";

@@ -53,4 +53,27 @@ public sealed class CloudApiClient
 
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task UploadTelemetryAsync(
+        string serialNumber,
+        string metric,
+        double value,
+        string unit,
+        CancellationToken cancellationToken = default)
+        {
+            var request = new
+            {
+                SerialNumber = serialNumber,
+                Metric = metric,
+                Value = value,
+                Unit = unit
+            };
+
+            var response = await _httpClient.PostAsJsonAsync(
+                "/api/telemetry",
+                request,
+                cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+    }
 }
