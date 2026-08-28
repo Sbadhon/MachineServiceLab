@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Threading.Tasks;
 using MachineServiceLab.Desktop.Services;
 using System;
+using MachineServiceLab.Desktop.Models;
 
 namespace MachineServiceLab.Desktop.ViewModels;
 
@@ -37,6 +38,20 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial string Faults { get; set; } = "-";
 
+    [ObservableProperty]
+    public partial bool EcoMode { get; set; }
+
+    [ObservableProperty]
+    public partial int BrushPressureLevel { get; set; }
+
+    [ObservableProperty]
+    public partial int MaxSpeedPercent { get; set; }
+
+    [ObservableProperty]
+    public partial string ConfigurationStatus { get; set; } = "-";
+
+    public IAsyncRelayCommand LoadConfigurationCommand { get; }
+    public IAsyncRelayCommand SaveConfigurationCommand { get; }
     public IAsyncRelayCommand ConnectCommand { get; }
     public IAsyncRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand ReadDiagnosticsCommand { get; }
@@ -48,6 +63,8 @@ public partial class MainViewModel : ViewModelBase
         ConnectCommand = new AsyncRelayCommand(ConnectAsync);
         DisconnectCommand = new AsyncRelayCommand(DisconnectAsync);
         ReadDiagnosticsCommand = new AsyncRelayCommand(ReadDiagnosticsAsync);
+        LoadConfigurationCommand = new AsyncRelayCommand(LoadConfigurationAsync);
+        SaveConfigurationCommand = new AsyncRelayCommand(SaveConfigurationAsync);
     }
 
     private async Task ConnectAsync()
@@ -80,6 +97,10 @@ public partial class MainViewModel : ViewModelBase
         ControllerTemperature = "-";
         MachineHours = "-";
         Faults = "-";
+        EcoMode = false;
+        BrushPressureLevel = 0;
+        MaxSpeedPercent = 0;
+        ConfigurationStatus = "-";
     }
 
     private async Task ReadDiagnosticsAsync()
@@ -95,5 +116,39 @@ public partial class MainViewModel : ViewModelBase
         ControllerTemperature = $"{diagnostics.ControllerTemperatureC:F1} °C";
         MachineHours = $"{diagnostics.MachineHours:F1}";
         Faults = string.Join(Environment.NewLine, diagnostics.FaultCodes);
+    }
+
+    private async Task LoadConfigurationAsync()
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        var configuration =
+            await _deviceTransport.ReadConfigurationAsync();
+
+        EcoMode = configuration.EcoMode;
+        BrushPressureLevel = configuration.BrushPressureLevel;
+        MaxSpeedPercent = configuration.MaxSpeedPercent;
+
+        ConfigurationStatus = "Configuration loaded";
+    }
+
+    private async Task SaveConfigurationAsync()
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        var configuration = new MachineConfiguration(
+            EcoMode,
+            BrushPressureLevel,
+            MaxSpeedPercent);
+
+        await _deviceTransport.UpdateConfigurationAsync(configuration);
+
+        ConfigurationStatus = "Configuration saved";
     }
 }

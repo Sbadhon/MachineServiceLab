@@ -8,6 +8,13 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
 {
     private bool _isConnected;
 
+    private MachineConfiguration _configuration =
+    new(
+        EcoMode: true,
+        BrushPressureLevel: 2,
+        MaxSpeedPercent: 80);
+
+
     public async Task<MachineInfo> ConnectAsync()
     {
         await Task.Delay(1000);
@@ -22,10 +29,7 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
 
     public async Task<DiagnosticsSnapshot> ReadDiagnosticsAsync()
     {
-        if (!_isConnected)
-        {
-            throw new InvalidOperationException("Machine is not connected.");
-        }
+        EnsureConnected();
         await Task.Delay(750);
 
         return new DiagnosticsSnapshot(
@@ -45,5 +49,32 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
         await Task.Delay(300);
 
         _isConnected = false;
+    }
+
+    public async Task<MachineConfiguration> ReadConfigurationAsync()
+    {
+        EnsureConnected();
+
+        await Task.Delay(500);
+
+        return _configuration;
+    }
+
+    public async Task UpdateConfigurationAsync(
+        MachineConfiguration configuration)
+    {
+        EnsureConnected();
+
+        await Task.Delay(750);
+
+        _configuration = configuration;
+    }
+
+    private void EnsureConnected()
+    {
+        if (!_isConnected)
+        {
+            throw new InvalidOperationException("Machine is not connected.");
+        }
     }
 }

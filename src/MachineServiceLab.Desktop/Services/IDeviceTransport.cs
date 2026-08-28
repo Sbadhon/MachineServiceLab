@@ -8,4 +8,6 @@ public interface IDeviceTransport
     Task<MachineInfo> ConnectAsync();
     Task<DiagnosticsSnapshot> ReadDiagnosticsAsync();
     Task DisconnectAsync();
+    Task<MachineConfiguration> ReadConfigurationAsync();
+    Task UpdateConfigurationAsync(MachineConfiguration configuration);
 }

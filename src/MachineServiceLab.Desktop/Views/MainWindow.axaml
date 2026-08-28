@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         d:DesignWidth="800"
-        d:DesignHeight="550"
+        d:DesignHeight="750"
         x:Class="MachineServiceLab.Desktop.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="700"
-        Height="550"
+        Height="750"
         Title="Machine Service Lab">
 
     <StackPanel
@@ -79,6 +79,49 @@
         <TextBlock
             Text="{Binding Faults}"
             TextWrapping="Wrap" />
+        <TextBlock
+            Text="Machine Configuration"
+            FontSize="18"
+            FontWeight="SemiBold" />
+
+        <CheckBox
+            Content="Eco Mode"
+            IsChecked="{Binding EcoMode}"
+            IsEnabled="{Binding IsConnected}" />
+
+    <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="Brush Pressure:" />
+        <NumericUpDown
+            Value="{Binding BrushPressureLevel}"
+            Minimum="1"
+            Maximum="5"
+            Width="100"
+            IsEnabled="{Binding IsConnected}" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="10">
+        <TextBlock Text="Max Speed %:" />
+        <NumericUpDown
+            Value="{Binding MaxSpeedPercent}"
+            Minimum="10"
+            Maximum="100"
+            Width="100"
+            IsEnabled="{Binding IsConnected}" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="10">
+        <Button
+            Content="Load Configuration"
+            Command="{Binding LoadConfigurationCommand}"
+            IsEnabled="{Binding IsConnected}" />
+
+        <Button
+            Content="Save Configuration"
+            Command="{Binding SaveConfigurationCommand}"
+            IsEnabled="{Binding IsConnected}" />
+    </StackPanel>
+
+    <TextBlock Text="{Binding ConfigurationStatus}" />
 
     </StackPanel>
 
