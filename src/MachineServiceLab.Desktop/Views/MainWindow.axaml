@@ -12,10 +12,6 @@
         Height="420"
         Title="Machine Service Lab">
 
-    <Design.DataContext>
-        <vm:MainViewModel />
-    </Design.DataContext>
-
     <StackPanel
         Width="320"
         Spacing="20"
@@ -37,6 +33,15 @@
             Text="{Binding ConnectionStatus}"
             FontSize="16"
             HorizontalAlignment="Center" />
+
+        <TextBlock 
+            Text="{Binding Model}" />
+
+        <TextBlock 
+            Text="{Binding SerialNumber}" />
+
+        <TextBlock 
+            Text="{Binding FirmwareVersion}" />
 
         <Button
             Content="Connect"

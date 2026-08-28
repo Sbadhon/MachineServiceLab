@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using MachineServiceLab.Desktop.Services;
 using MachineServiceLab.Desktop.ViewModels;
 using MachineServiceLab.Desktop.Views;
 
@@ -19,7 +20,7 @@ public partial class App : Application
         {
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainViewModel(),
+                DataContext = new MainViewModel(new SimulatedDeviceTransport()),
             };
         }
 
