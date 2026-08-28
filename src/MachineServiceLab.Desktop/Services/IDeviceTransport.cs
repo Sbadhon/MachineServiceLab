@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using MachineServiceLab.Desktop.Models;
 
@@ -11,5 +12,7 @@ public interface IDeviceTransport
     Task DisconnectAsync();
     Task<MachineConfiguration> ReadConfigurationAsync();
     Task UpdateConfigurationAsync(MachineConfiguration configuration);
-    Task<string> UpdateFirmwareAsync(IProgress<int> progress);
+    Task<string> UpdateFirmwareAsync(
+        IProgress<int> progress,
+        CancellationToken cancellationToken);
 }

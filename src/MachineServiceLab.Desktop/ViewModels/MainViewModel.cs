@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using MachineServiceLab.Desktop.Services;
 using System;
 using MachineServiceLab.Desktop.Models;
+using System.Threading;
 
 namespace MachineServiceLab.Desktop.ViewModels;
 
@@ -59,6 +60,7 @@ public partial class MainViewModel : ViewModelBase
     public partial bool IsFirmwareUpdating { get; set; }
 
     public IAsyncRelayCommand UpdateFirmwareCommand { get; }
+    public IRelayCommand CancelFirmwareCommand { get; }
     public IAsyncRelayCommand LoadConfigurationCommand { get; }
     public IAsyncRelayCommand SaveConfigurationCommand { get; }
     public IAsyncRelayCommand ConnectCommand { get; }
@@ -75,6 +77,7 @@ public partial class MainViewModel : ViewModelBase
         LoadConfigurationCommand = new AsyncRelayCommand(LoadConfigurationAsync);
         SaveConfigurationCommand = new AsyncRelayCommand(SaveConfigurationAsync);
         UpdateFirmwareCommand = new AsyncRelayCommand(UpdateFirmwareAsync);
+        CancelFirmwareCommand = new RelayCommand(() => UpdateFirmwareCommand.Cancel());
     }
 
     private async Task ConnectAsync()
@@ -165,7 +168,7 @@ public partial class MainViewModel : ViewModelBase
         ConfigurationStatus = "Configuration saved";
     }
 
-    private async Task UpdateFirmwareAsync()
+    private async Task UpdateFirmwareAsync(CancellationToken cancellationToken)
     {
         if (!IsConnected || IsFirmwareUpdating)
         {
@@ -176,14 +179,31 @@ public partial class MainViewModel : ViewModelBase
         FirmwareProgress = 0;
         FirmwareUpdateStatus = "Programming firmware...";
 
-        var progress = new Progress<int>(
-            value => FirmwareProgress = value);
+        try
+        {
+            var progress = new Progress<int>(
+                value => FirmwareProgress = value);
 
-        var newVersion =
-            await _deviceTransport.UpdateFirmwareAsync(progress);
+            var newVersion =
+                await _deviceTransport.UpdateFirmwareAsync(
+                    progress,
+                    cancellationToken);
 
-        FirmwareVersion = newVersion;
-        FirmwareUpdateStatus = "Firmware update completed";
-        IsFirmwareUpdating = false;
+            FirmwareVersion = newVersion;
+            FirmwareUpdateStatus = "Firmware update completed";
+        }
+        catch (OperationCanceledException)
+        {
+            FirmwareUpdateStatus = "Firmware update cancelled";
+        }
+        catch (Exception ex)
+        {
+            FirmwareUpdateStatus =
+                $"Firmware update failed: {ex.Message}";
+        }
+        finally
+        {
+            IsFirmwareUpdating = false;
+        }
     }
 }

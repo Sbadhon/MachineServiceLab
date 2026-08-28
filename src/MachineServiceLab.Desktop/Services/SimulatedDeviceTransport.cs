@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using MachineServiceLab.Desktop.Models;
 
@@ -78,13 +79,18 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
         }
     }
 
-    public async Task<string> UpdateFirmwareAsync(IProgress<int> progress)
+    public async Task<string> UpdateFirmwareAsync(
+        IProgress<int> progress,
+        CancellationToken cancellationToken)
     {
         EnsureConnected();
 
         for (var percent = 10; percent <= 100; percent += 10)
         {
-            await Task.Delay(300);
+            await Task.Delay(300, cancellationToken);
+
+            EnsureConnected();
+
             progress.Report(percent);
         }
 
