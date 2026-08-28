@@ -6,4 +6,5 @@ namespace MachineServiceLab.Desktop.Services;
 public interface IDeviceTransport
 {
     Task<MachineInfo> ConnectAsync();
+    Task<DiagnosticsSnapshot> ReadDiagnosticsAsync();
 }

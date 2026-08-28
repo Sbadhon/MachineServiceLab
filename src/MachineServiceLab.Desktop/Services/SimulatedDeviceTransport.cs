@@ -14,4 +14,20 @@ public sealed class SimulatedDeviceTransport : IDeviceTransport
             SerialNumber: "MSL-100001",
             FirmwareVersion: "1.0.0");
     }
+
+    public async Task<DiagnosticsSnapshot> ReadDiagnosticsAsync()
+    {
+        await Task.Delay(750);
+
+        return new DiagnosticsSnapshot(
+            BatteryPercent: 81,
+            BatteryVoltage: 37.8,
+            ControllerTemperatureC: 42.5,
+            MachineHours: 1432.7,
+            FaultCodes:
+            [
+                "F102 - Brush Motor Overcurrent",
+                "F208 - Battery Voltage Low"
+            ]);
+    }
 }

@@ -44,6 +44,24 @@
             Text="{Binding FirmwareVersion}" />
 
         <Button
+            Content="Run Diagnostics"
+            Command="{Binding ReadDiagnosticsCommand}"
+            HorizontalAlignment="Center"
+            Padding="24,10" />
+
+        <TextBlock 
+            Text="{Binding Battery}" />
+        
+        <TextBlock 
+            Text="{Binding ControllerTemperature}" />
+
+        <TextBlock 
+            Text="{Binding MachineHours}" />
+
+        <TextBlock 
+            Text="{Binding Faults}" TextWrapping="Wrap" />
+
+        <Button
             Content="Connect"
             Command="{Binding ConnectCommand}"
             HorizontalAlignment="Center"

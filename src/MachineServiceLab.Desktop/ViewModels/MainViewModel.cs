@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Threading.Tasks;
 using MachineServiceLab.Desktop.Services;
+using System;
 
 namespace MachineServiceLab.Desktop.ViewModels;
 
@@ -21,6 +22,20 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     public partial string FirmwareVersion { get; set; } = "-";
 
+    [ObservableProperty]
+    public partial string Battery { get; set; } = "-";
+
+    [ObservableProperty]
+    public partial string ControllerTemperature { get; set; } = "-";
+
+    [ObservableProperty]
+    public partial string MachineHours { get; set; } = "-";
+
+    [ObservableProperty]
+    public partial string Faults { get; set; } = "-";
+
+    public IAsyncRelayCommand ReadDiagnosticsCommand { get; }
+
     public IAsyncRelayCommand ConnectCommand { get; }
 
     public MainViewModel(IDeviceTransport deviceTransport)
@@ -28,6 +43,8 @@ public partial class MainViewModel : ViewModelBase
         _deviceTransport = deviceTransport;
 
         ConnectCommand = new AsyncRelayCommand(ConnectAsync);
+
+        ReadDiagnosticsCommand = new AsyncRelayCommand(ReadDiagnosticsAsync);
     }
 
     private async Task ConnectAsync()
@@ -41,5 +58,15 @@ public partial class MainViewModel : ViewModelBase
         FirmwareVersion = machine.FirmwareVersion;
 
         ConnectionStatus = "Connected";
+    }
+
+    private async Task ReadDiagnosticsAsync()
+    {
+        var diagnostics = await _deviceTransport.ReadDiagnosticsAsync();
+
+        Battery = $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
+        ControllerTemperature = $"{diagnostics.ControllerTemperatureC:F1} °C";
+        MachineHours = $"{diagnostics.MachineHours:F1}";
+        Faults = string.Join(Environment.NewLine, diagnostics.FaultCodes);
     }
 }
