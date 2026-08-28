@@ -130,7 +130,7 @@ public partial class MainViewModel : ViewModelBase
         }
 
         var diagnostics = await _deviceTransport.ReadDiagnosticsAsync();
-
+        await _cloudApiClient.UploadDiagnosticsAsync(SerialNumber, diagnostics);
         Battery = $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
         ControllerTemperature = $"{diagnostics.ControllerTemperatureC:F1} °C";
         MachineHours = $"{diagnostics.MachineHours:F1}";

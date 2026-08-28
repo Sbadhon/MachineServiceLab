@@ -30,4 +30,27 @@ public sealed class CloudApiClient
 
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task UploadDiagnosticsAsync(
+        string serialNumber,
+        DiagnosticsSnapshot diagnostics,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new
+        {
+            SerialNumber = serialNumber,
+            diagnostics.BatteryPercent,
+            diagnostics.BatteryVoltage,
+            diagnostics.ControllerTemperatureC,
+            diagnostics.MachineHours,
+            diagnostics.FaultCodes
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(
+            "/api/diagnostics",
+            request,
+            cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+    }
 }

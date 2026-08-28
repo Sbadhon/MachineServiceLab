@@ -1,38 +1,111 @@
-using System.Collections.Concurrent;
+using System.Text.Json;
+using MachineServiceLab.Api.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("MachineServiceLab")));
+
 var app = builder.Build();
 
-var machines =
-    new ConcurrentDictionary<string, MachineRegistration>();
+app.MapGet("/health", () =>
+    Results.Ok(new { status = "Healthy" }));
 
-app.MapGet("/health", () => Results.Ok(new
+app.MapPost("/api/machines", async (
+    RegisterMachineRequest request,
+    AppDbContext db) =>
 {
-    status = "Healthy"
-}));
+    var machine =
+        await db.Machines.FindAsync(request.SerialNumber);
 
-app.MapPost("/api/machines", (
-    RegisterMachineRequest request) =>
-{
-    var machine = new MachineRegistration(
-        request.SerialNumber,
-        request.Model,
-        request.FirmwareVersion,
-        DateTimeOffset.UtcNow);
+    if (machine is null)
+    {
+        machine = new MachineEntity
+        {
+            SerialNumber = request.SerialNumber,
+            Model = request.Model,
+            FirmwareVersion = request.FirmwareVersion,
+            RegisteredAt = DateTimeOffset.UtcNow
+        };
 
-    machines[request.SerialNumber] = machine;
+        db.Machines.Add(machine);
+    }
+    else
+    {
+        machine.Model = request.Model;
+        machine.FirmwareVersion = request.FirmwareVersion;
+    }
+
+    await db.SaveChangesAsync();
 
     return Results.Ok(machine);
 });
 
-app.MapGet("/api/machines/{serialNumber}", (
-    string serialNumber) =>
+app.MapGet("/api/machines/{serialNumber}", async (
+    string serialNumber,
+    AppDbContext db) =>
 {
-    return machines.TryGetValue(serialNumber, out var machine)
-        ? Results.Ok(machine)
-        : Results.NotFound();
+    var machine =
+        await db.Machines.FindAsync(serialNumber);
+
+    return machine is null
+        ? Results.NotFound()
+        : Results.Ok(machine);
 });
+
+app.MapPost("/api/diagnostics", async (
+    DiagnosticsRequest request,
+    AppDbContext db) =>
+{
+    var machineExists =
+        await db.Machines.AnyAsync(
+            x => x.SerialNumber == request.SerialNumber);
+
+    if (!machineExists)
+    {
+        return Results.NotFound(new
+        {
+            message = "Machine is not registered."
+        });
+    }
+
+    var diagnostics = new DiagnosticsEntity
+    {
+        SerialNumber = request.SerialNumber,
+        BatteryPercent = request.BatteryPercent,
+        BatteryVoltage = request.BatteryVoltage,
+        ControllerTemperatureC =
+            request.ControllerTemperatureC,
+        MachineHours = request.MachineHours,
+        FaultCodesJson =
+            JsonSerializer.Serialize(request.FaultCodes),
+        CapturedAt = DateTimeOffset.UtcNow
+    };
+
+    db.Diagnostics.Add(diagnostics);
+
+    await db.SaveChangesAsync();
+
+    return Results.Ok(diagnostics);
+});
+
+app.MapGet("/api/machines/{serialNumber}/diagnostics/latest",
+    async (
+        string serialNumber,
+        AppDbContext db) =>
+    {
+        var diagnostics =
+            await db.Diagnostics
+                .Where(x => x.SerialNumber == serialNumber)
+                .OrderByDescending(x => x.CapturedAt)
+                .FirstOrDefaultAsync();
+
+        return diagnostics is null
+            ? Results.NotFound()
+            : Results.Ok(diagnostics);
+    });
 
 app.Run();
 
@@ -41,8 +114,10 @@ public sealed record RegisterMachineRequest(
     string Model,
     string FirmwareVersion);
 
-public sealed record MachineRegistration(
+public sealed record DiagnosticsRequest(
     string SerialNumber,
-    string Model,
-    string FirmwareVersion,
-    DateTimeOffset RegisteredAt);
+    int BatteryPercent,
+    double BatteryVoltage,
+    double ControllerTemperatureC,
+    double MachineHours,
+    string[] FaultCodes);
