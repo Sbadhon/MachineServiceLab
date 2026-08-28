@@ -2,5 +2,6 @@
   <Folder Name="/src/">
     <Project Path="src/MachineServiceLab.Api/MachineServiceLab.Api.csproj" />
     <Project Path="src/MachineServiceLab.Desktop/MachineServiceLab.Desktop.csproj" />
+    <Project Path="src/MachineServiceLab.DeviceSimulator/MachineServiceLab.DeviceSimulator.csproj" />
   </Folder>
 </Solution>
