@@ -13,6 +13,7 @@ This project was inspired by the types of connected equipment service and diagno
 
 Machine Service Lab is an independent learning and architecture project. It is **not affiliated with, endorsed by, or derived from Tennant Company's proprietary software, source code, internal architecture, or device protocols**. All machine models, commands, telemetry values, fault codes, and communication protocols in this repository are simulated and created specifically for engineering practice.
 
+---
 ## Application
 
 ![Machine Service Lab desktop application](docs/images/machine-service-lab-1.png)

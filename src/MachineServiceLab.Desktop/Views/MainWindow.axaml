@@ -37,7 +37,11 @@
                 Text="{Binding ConnectionStatus}"
                 FontSize="16"
                 HorizontalAlignment="Center" />
-
+            <TextBlock
+                Text="{Binding ErrorMessage}"
+                TextWrapping="Wrap"
+                HorizontalAlignment="Center"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
             <StackPanel
                 Orientation="Horizontal"
                 Spacing="12"

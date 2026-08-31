@@ -59,7 +59,8 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool IsFirmwareUpdating { get; set; }
-
+    [ObservableProperty]
+    public partial string ErrorMessage { get; set; } = "";
     public IAsyncRelayCommand UpdateFirmwareCommand { get; }
     public IRelayCommand CancelFirmwareCommand { get; }
     public IAsyncRelayCommand LoadConfigurationCommand { get; }
@@ -84,17 +85,29 @@ public partial class MainViewModel : ViewModelBase
 
     private async Task ConnectAsync()
     {
+        ErrorMessage = "";
         ConnectionStatus = "Connecting...";
 
-        var machine = await _deviceTransport.ConnectAsync();
-        await _cloudApiClient.RegisterMachineAsync(machine);
+        try
+        {
+            var machine = await _deviceTransport.ConnectAsync();
 
-        Model = machine.Model;
-        SerialNumber = machine.SerialNumber;
-        FirmwareVersion = machine.FirmwareVersion;
+            await _cloudApiClient.RegisterMachineAsync(machine);
 
-        IsConnected = true;
-        ConnectionStatus = "Connected";
+            Model = machine.Model;
+            SerialNumber = machine.SerialNumber;
+            FirmwareVersion = machine.FirmwareVersion;
+
+            IsConnected = true;
+            ConnectionStatus = "Connected";
+        }
+        catch (Exception ex)
+        {
+            ResetConnectionState();
+
+            ConnectionStatus = "Connection failed";
+            ErrorMessage = ex.Message;
+        }
     }
 
     private async Task DisconnectAsync()
@@ -104,7 +117,10 @@ public partial class MainViewModel : ViewModelBase
         await _deviceTransport.DisconnectAsync();
 
         IsConnected = false;
+        ResetConnectionState();
         ConnectionStatus = "Disconnected";
+        ErrorMessage = "";
+        FirmwareUpdateStatus = "Ready";
 
         Model = "-";
         SerialNumber = "-";
@@ -122,24 +138,64 @@ public partial class MainViewModel : ViewModelBase
         IsFirmwareUpdating = false;
     }
 
-    private async Task ReadDiagnosticsAsync()
-    {
+    private async Task ReadDiagnosticsAsync() {
         if (!IsConnected)
         {
             return;
         }
 
-        var diagnostics = await _deviceTransport.ReadDiagnosticsAsync();
-        await _cloudApiClient.UploadDiagnosticsAsync(SerialNumber, diagnostics);
-        await _cloudApiClient.UploadTelemetryAsync(SerialNumber, "BatteryVoltage", diagnostics.BatteryVoltage, "V");
-        await _cloudApiClient.UploadTelemetryAsync(SerialNumber, "ControllerTemperature", diagnostics.ControllerTemperatureC, "C");
-        await _cloudApiClient.UploadTelemetryAsync(SerialNumber, "MachineHours", diagnostics.MachineHours, "hours");
-        Battery = $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
-        ControllerTemperature = $"{diagnostics.ControllerTemperatureC:F1} °C";
-        MachineHours = $"{diagnostics.MachineHours:F1}";
-        Faults = string.Join(Environment.NewLine, diagnostics.FaultCodes);
-    }
+        ErrorMessage = "";
 
+        try
+        {
+            var diagnostics =
+                await _deviceTransport.ReadDiagnosticsAsync();
+
+            await _cloudApiClient.UploadDiagnosticsAsync(
+                SerialNumber,
+                diagnostics);
+
+            await _cloudApiClient.UploadTelemetryAsync(
+                SerialNumber,
+                "BatteryVoltage",
+                diagnostics.BatteryVoltage,
+                "V");
+
+            await _cloudApiClient.UploadTelemetryAsync(
+                SerialNumber,
+                "ControllerTemperature",
+                diagnostics.ControllerTemperatureC,
+                "C");
+
+            await _cloudApiClient.UploadTelemetryAsync(
+                SerialNumber,
+                "MachineHours",
+                diagnostics.MachineHours,
+                "hours");
+
+            Battery =
+                $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
+
+            ControllerTemperature =
+                $"{diagnostics.ControllerTemperatureC:F1} °C";
+
+            MachineHours =
+                $"{diagnostics.MachineHours:F1}";
+
+            Faults =
+                string.Join(
+                    Environment.NewLine,
+                    diagnostics.FaultCodes);
+        }
+        catch (Exception ex)
+        {
+            ResetConnectionState();
+
+            ConnectionStatus = "Connection lost";
+            ErrorMessage = ex.Message;
+        }
+}
+    
     private async Task LoadConfigurationAsync()
     {
         if (!IsConnected)
@@ -211,5 +267,26 @@ public partial class MainViewModel : ViewModelBase
         {
             IsFirmwareUpdating = false;
         }
+    }
+
+    private void ResetConnectionState() {
+        IsConnected = false;
+
+        Model = "-";
+        SerialNumber = "-";
+        FirmwareVersion = "-";
+
+        Battery = "-";
+        ControllerTemperature = "-";
+        MachineHours = "-";
+        Faults = "-";
+
+        EcoMode = false;
+        BrushPressureLevel = 0;
+        MaxSpeedPercent = 0;
+        ConfigurationStatus = "-";
+
+        FirmwareProgress = 0;
+        IsFirmwareUpdating = false;
     }
 }
