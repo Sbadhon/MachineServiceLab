@@ -1,5 +1,7 @@
+using MachineServiceLab.Api.Contracts;
 using MachineServiceLab.Api.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace MachineServiceLab.Api.Controllers;
 
@@ -8,11 +10,13 @@ namespace MachineServiceLab.Api.Controllers;
 public sealed class MachinesController(AppDbContext db) : ControllerBase
 {
     [HttpPost]
-    public async Task<ActionResult<MachineEntity>> Register(
-        RegisterMachineRequest request)
+    public async Task<ActionResult<MachineResponse>> Register(
+        RegisterMachineRequest request,
+        CancellationToken cancellationToken)
     {
-        var machine =
-            await db.Machines.FindAsync(request.SerialNumber);
+        var machine = await db.Machines.FindAsync(
+            [request.SerialNumber],
+            cancellationToken);
 
         if (machine is null)
         {
@@ -32,25 +36,31 @@ public sealed class MachinesController(AppDbContext db) : ControllerBase
             machine.FirmwareVersion = request.FirmwareVersion;
         }
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
-        return Ok(machine);
+        return Ok(ToResponse(machine));
     }
 
     [HttpGet("{serialNumber}")]
-    public async Task<ActionResult<MachineEntity>> Get(
-        string serialNumber)
+    public async Task<ActionResult<MachineResponse>> Get(
+        string serialNumber,
+        CancellationToken cancellationToken)
     {
-        var machine =
-            await db.Machines.FindAsync(serialNumber);
+        var machine = await db.Machines
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.SerialNumber == serialNumber,
+                cancellationToken);
 
         return machine is null
             ? NotFound()
-            : Ok(machine);
+            : Ok(ToResponse(machine));
     }
-}
 
-public sealed record RegisterMachineRequest(
-    string SerialNumber,
-    string Model,
-    string FirmwareVersion);
+    private static MachineResponse ToResponse(MachineEntity machine) =>
+        new(
+            machine.SerialNumber,
+            machine.Model,
+            machine.FirmwareVersion,
+            machine.RegisteredAt);
+}

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MachineServiceLab.Api.Contracts;
 using MachineServiceLab.Api.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,12 +12,14 @@ public sealed class DiagnosticsController(
     AppDbContext db) : ControllerBase
 {
     [HttpPost("diagnostics")]
-    public async Task<ActionResult<DiagnosticsEntity>> Create(
-        DiagnosticsRequest request)
+    public async Task<ActionResult<DiagnosticsResponse>> Create(
+        DiagnosticsRequest request,
+        CancellationToken cancellationToken)
     {
-        var machineExists =
-            await db.Machines.AnyAsync(
-                x => x.SerialNumber == request.SerialNumber);
+        var machineExists = await db.Machines
+            .AnyAsync(
+                x => x.SerialNumber == request.SerialNumber,
+                cancellationToken);
 
         if (!machineExists)
         {
@@ -41,31 +44,37 @@ public sealed class DiagnosticsController(
 
         db.Diagnostics.Add(diagnostics);
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(cancellationToken);
 
-        return Ok(diagnostics);
+        return Ok(ToResponse(diagnostics));
     }
 
     [HttpGet("machines/{serialNumber}/diagnostics/latest")]
-    public async Task<ActionResult<DiagnosticsEntity>> GetLatest(
-        string serialNumber)
+    public async Task<ActionResult<DiagnosticsResponse>> GetLatest(
+        string serialNumber,
+        CancellationToken cancellationToken)
     {
-        var diagnostics =
-            await db.Diagnostics
-                .Where(x => x.SerialNumber == serialNumber)
-                .OrderByDescending(x => x.Id)
-                .FirstOrDefaultAsync();
+        var diagnostics = await db.Diagnostics
+            .AsNoTracking()
+            .Where(x => x.SerialNumber == serialNumber)
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
 
         return diagnostics is null
             ? NotFound()
-            : Ok(diagnostics);
+            : Ok(ToResponse(diagnostics));
     }
-}
 
-public sealed record DiagnosticsRequest(
-    string SerialNumber,
-    int BatteryPercent,
-    double BatteryVoltage,
-    double ControllerTemperatureC,
-    double MachineHours,
-    string[] FaultCodes);
+    private static DiagnosticsResponse ToResponse(
+        DiagnosticsEntity diagnostics) =>
+        new(
+            diagnostics.Id,
+            diagnostics.SerialNumber,
+            diagnostics.BatteryPercent,
+            diagnostics.BatteryVoltage,
+            diagnostics.ControllerTemperatureC,
+            diagnostics.MachineHours,
+            JsonSerializer.Deserialize<string[]>(
+                diagnostics.FaultCodesJson) ?? [],
+            diagnostics.CapturedAt);
+}
