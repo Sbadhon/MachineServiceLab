@@ -1,12 +1,41 @@
 using System.Text.Json;
 using MachineServiceLab.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var azureSqlConnection =
+    Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTIONSTRING");
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("MachineServiceLab")));
+{
+    if (!string.IsNullOrWhiteSpace(azureSqlConnection))
+    {
+        options.UseSqlServer(
+            azureSqlConnection,
+            sqlOptions =>
+                sqlOptions.EnableRetryOnFailure());
+    }
+    else
+    {
+        options.UseSqlite(
+            builder.Configuration.GetConnectionString(
+                "MachineServiceLab"));
+    }
+});
+
+var applicationInsightsConnection =
+    Environment.GetEnvironmentVariable(
+        "APPLICATIONINSIGHTS_CONNECTION_STRING");
+
+if (!string.IsNullOrWhiteSpace(
+        applicationInsightsConnection))
+{
+    builder.Services
+        .AddOpenTelemetry()
+        .UseAzureMonitor();
+}
 
 var app = builder.Build();
 
@@ -150,6 +179,33 @@ app.MapGet("/api/machines/{serialNumber}/telemetry", async (
         .ToListAsync();
 
     return Results.Ok(telemetry);
+});
+
+app.MapGet("/api/platform", () =>
+{
+    var azureSqlEnabled =
+        !string.IsNullOrWhiteSpace(
+            Environment.GetEnvironmentVariable(
+                "AZURE_SQL_CONNECTIONSTRING"));
+
+    var monitoringEnabled =
+        !string.IsNullOrWhiteSpace(
+            Environment.GetEnvironmentVariable(
+                "APPLICATIONINSIGHTS_CONNECTION_STRING"));
+
+    return Results.Ok(new
+    {
+        runtime = ".NET 10",
+        hosting = azureSqlEnabled
+            ? "Azure"
+            : "Local",
+        database = azureSqlEnabled
+            ? "Azure SQL"
+            : "SQLite",
+        monitoring = monitoringEnabled
+            ? "Azure Monitor / Application Insights"
+            : "Local logging"
+    });
 });
 
 app.Run();
