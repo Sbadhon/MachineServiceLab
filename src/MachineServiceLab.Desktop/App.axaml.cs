@@ -1,3 +1,4 @@
+using System;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
@@ -16,13 +17,19 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        if (ApplicationLifetime
+            is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            var apiBaseUrl =
+                Environment.GetEnvironmentVariable(
+                    "MACHINE_SERVICE_API_URL")
+                ?? "http://localhost:5163";
+
             desktop.MainWindow = new MainWindow
             {
                 DataContext = new MainViewModel(
                     new TcpDeviceTransport(),
-                    new CloudApiClient("http://localhost:5163")),
+                    new CloudApiClient(apiBaseUrl))
             };
         }
 

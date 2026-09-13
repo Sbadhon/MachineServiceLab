@@ -6,24 +6,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-var azureSqlConnection =
-    Environment.GetEnvironmentVariable("AZURE_SQL_CONNECTIONSTRING");
+var sqlConnection = builder.Configuration
+    .GetConnectionString("MachineServiceLab")
+    ?? throw new InvalidOperationException(
+        "Connection string 'MachineServiceLab' is required.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-{
-    if (!string.IsNullOrWhiteSpace(azureSqlConnection))
-    {
-        options.UseSqlServer(
-            azureSqlConnection,
-            sqlOptions => sqlOptions.EnableRetryOnFailure());
-    }
-    else
-    {
-        options.UseSqlite(
-            builder.Configuration.GetConnectionString(
-                "MachineServiceLab"));
-    }
-});
+    options.UseSqlServer(
+        sqlConnection,
+        sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 var applicationInsightsConnection =
     Environment.GetEnvironmentVariable(

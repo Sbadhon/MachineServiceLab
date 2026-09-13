@@ -17,10 +17,10 @@ public sealed class PlatformController : ControllerBase
     [HttpGet("/api/platform")]
     public ActionResult GetPlatform()
     {
-        var azureSqlEnabled =
+        var isAzureAppService =
             !string.IsNullOrWhiteSpace(
                 Environment.GetEnvironmentVariable(
-                    "AZURE_SQL_CONNECTIONSTRING"));
+                    "WEBSITE_SITE_NAME"));
 
         var monitoringEnabled =
             !string.IsNullOrWhiteSpace(
@@ -30,12 +30,15 @@ public sealed class PlatformController : ControllerBase
         return Ok(new
         {
             runtime = ".NET 10",
-            hosting = azureSqlEnabled
-                ? "Azure"
+
+            hosting = isAzureAppService
+                ? "Azure App Service"
                 : "Local",
-            database = azureSqlEnabled
+
+            database = isAzureAppService
                 ? "Azure SQL"
-                : "SQLite",
+                : "SQL Server / Azure SQL",
+
             monitoring = monitoringEnabled
                 ? "Azure Monitor / Application Insights"
                 : "Local logging"

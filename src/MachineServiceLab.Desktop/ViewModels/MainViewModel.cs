@@ -1,10 +1,10 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Threading.Tasks;
-using MachineServiceLab.Desktop.Services;
-using System;
 using MachineServiceLab.Desktop.Models;
-using System.Threading;
+using MachineServiceLab.Desktop.Services;
 
 namespace MachineServiceLab.Desktop.ViewModels;
 
@@ -51,6 +51,7 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string ConfigurationStatus { get; set; } = "-";
+
     [ObservableProperty]
     public partial int FirmwareProgress { get; set; }
 
@@ -59,28 +60,46 @@ public partial class MainViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial bool IsFirmwareUpdating { get; set; }
+
     [ObservableProperty]
     public partial string ErrorMessage { get; set; } = "";
-    public IAsyncRelayCommand UpdateFirmwareCommand { get; }
-    public IRelayCommand CancelFirmwareCommand { get; }
-    public IAsyncRelayCommand LoadConfigurationCommand { get; }
-    public IAsyncRelayCommand SaveConfigurationCommand { get; }
+
     public IAsyncRelayCommand ConnectCommand { get; }
     public IAsyncRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand ReadDiagnosticsCommand { get; }
+    public IAsyncRelayCommand LoadConfigurationCommand { get; }
+    public IAsyncRelayCommand SaveConfigurationCommand { get; }
+    public IAsyncRelayCommand UpdateFirmwareCommand { get; }
+    public IRelayCommand CancelFirmwareCommand { get; }
 
-    public MainViewModel(IDeviceTransport deviceTransport, CloudApiClient cloudApiClient)
+    public MainViewModel(
+        IDeviceTransport deviceTransport,
+        CloudApiClient cloudApiClient)
     {
         _deviceTransport = deviceTransport;
         _cloudApiClient = cloudApiClient;
 
-        ConnectCommand = new AsyncRelayCommand(ConnectAsync);
-        DisconnectCommand = new AsyncRelayCommand(DisconnectAsync);
-        ReadDiagnosticsCommand = new AsyncRelayCommand(ReadDiagnosticsAsync);
-        LoadConfigurationCommand = new AsyncRelayCommand(LoadConfigurationAsync);
-        SaveConfigurationCommand = new AsyncRelayCommand(SaveConfigurationAsync);
-        UpdateFirmwareCommand = new AsyncRelayCommand(UpdateFirmwareAsync);
-        CancelFirmwareCommand = new RelayCommand(() => UpdateFirmwareCommand.Cancel());
+        ConnectCommand =
+            new AsyncRelayCommand(ConnectAsync);
+
+        DisconnectCommand =
+            new AsyncRelayCommand(DisconnectAsync);
+
+        ReadDiagnosticsCommand =
+            new AsyncRelayCommand(ReadDiagnosticsAsync);
+
+        LoadConfigurationCommand =
+            new AsyncRelayCommand(LoadConfigurationAsync);
+
+        SaveConfigurationCommand =
+            new AsyncRelayCommand(SaveConfigurationAsync);
+
+        UpdateFirmwareCommand =
+            new AsyncRelayCommand(UpdateFirmwareAsync);
+
+        CancelFirmwareCommand =
+            new RelayCommand(
+                () => UpdateFirmwareCommand.Cancel());
     }
 
     private async Task ConnectAsync()
@@ -88,18 +107,11 @@ public partial class MainViewModel : ViewModelBase
         ErrorMessage = "";
         ConnectionStatus = "Connecting...";
 
+        MachineInfo machine;
+
         try
         {
-            var machine = await _deviceTransport.ConnectAsync();
-
-            await _cloudApiClient.RegisterMachineAsync(machine);
-
-            Model = machine.Model;
-            SerialNumber = machine.SerialNumber;
-            FirmwareVersion = machine.FirmwareVersion;
-
-            IsConnected = true;
-            ConnectionStatus = "Connected";
+            machine = await _deviceTransport.ConnectAsync();
         }
         catch (Exception ex)
         {
@@ -107,38 +119,122 @@ public partial class MainViewModel : ViewModelBase
 
             ConnectionStatus = "Connection failed";
             ErrorMessage = ex.Message;
+
+            return;
+        }
+
+        Model = machine.Model;
+        SerialNumber = machine.SerialNumber;
+        FirmwareVersion = machine.FirmwareVersion;
+
+        IsConnected = true;
+        ConnectionStatus = "Connected";
+
+        try
+        {
+            await _cloudApiClient.RegisterMachineAsync(machine);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Machine connected. Cloud registration failed: {ex.Message}";
         }
     }
 
     private async Task DisconnectAsync()
     {
+        ErrorMessage = "";
         ConnectionStatus = "Disconnecting...";
 
-        await _deviceTransport.DisconnectAsync();
+        try
+        {
+            await _deviceTransport.DisconnectAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Disconnect warning: {ex.Message}";
+        }
+        finally
+        {
+            ResetConnectionState();
 
-        IsConnected = false;
-        ResetConnectionState();
-        ConnectionStatus = "Disconnected";
-        ErrorMessage = "";
-        FirmwareUpdateStatus = "Ready";
-
-        Model = "-";
-        SerialNumber = "-";
-        FirmwareVersion = "-";
-        Battery = "-";
-        ControllerTemperature = "-";
-        MachineHours = "-";
-        Faults = "-";
-        EcoMode = false;
-        BrushPressureLevel = 0;
-        MaxSpeedPercent = 0;
-        ConfigurationStatus = "-";
-        FirmwareProgress = 0;
-        FirmwareUpdateStatus = "Ready";
-        IsFirmwareUpdating = false;
+            ConnectionStatus = "Disconnected";
+            FirmwareUpdateStatus = "Ready";
+        }
     }
 
-    private async Task ReadDiagnosticsAsync() {
+    private async Task ReadDiagnosticsAsync()
+    {
+        if (!IsConnected)
+        {
+            return;
+        }
+
+        ErrorMessage = "";
+
+        DiagnosticsSnapshot diagnostics;
+
+        try
+        {
+            diagnostics =
+                await _deviceTransport.ReadDiagnosticsAsync();
+        }
+        catch (Exception ex)
+        {
+            HandleDeviceFailure(ex);
+            return;
+        }
+
+        Battery =
+            $"{diagnostics.BatteryPercent}% / " +
+            $"{diagnostics.BatteryVoltage:F1} V";
+
+        ControllerTemperature =
+            $"{diagnostics.ControllerTemperatureC:F1} °C";
+
+        MachineHours =
+            $"{diagnostics.MachineHours:F1}";
+
+        Faults =
+            string.Join(
+                Environment.NewLine,
+                diagnostics.FaultCodes);
+
+        try
+        {
+            await Task.WhenAll(
+                _cloudApiClient.UploadDiagnosticsAsync(
+                    SerialNumber,
+                    diagnostics),
+
+                _cloudApiClient.UploadTelemetryAsync(
+                    SerialNumber,
+                    "BatteryVoltage",
+                    diagnostics.BatteryVoltage,
+                    "V"),
+
+                _cloudApiClient.UploadTelemetryAsync(
+                    SerialNumber,
+                    "ControllerTemperature",
+                    diagnostics.ControllerTemperatureC,
+                    "C"),
+
+                _cloudApiClient.UploadTelemetryAsync(
+                    SerialNumber,
+                    "MachineHours",
+                    diagnostics.MachineHours,
+                    "hours"));
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage =
+                $"Diagnostics completed. Cloud sync failed: {ex.Message}";
+        }
+    }
+
+    private async Task LoadConfigurationAsync()
+    {
         if (!IsConnected)
         {
             return;
@@ -148,69 +244,22 @@ public partial class MainViewModel : ViewModelBase
 
         try
         {
-            var diagnostics =
-                await _deviceTransport.ReadDiagnosticsAsync();
+            var configuration =
+                await _deviceTransport.ReadConfigurationAsync();
 
-            await _cloudApiClient.UploadDiagnosticsAsync(
-                SerialNumber,
-                diagnostics);
+            EcoMode = configuration.EcoMode;
+            BrushPressureLevel =
+                configuration.BrushPressureLevel;
+            MaxSpeedPercent =
+                configuration.MaxSpeedPercent;
 
-            await _cloudApiClient.UploadTelemetryAsync(
-                SerialNumber,
-                "BatteryVoltage",
-                diagnostics.BatteryVoltage,
-                "V");
-
-            await _cloudApiClient.UploadTelemetryAsync(
-                SerialNumber,
-                "ControllerTemperature",
-                diagnostics.ControllerTemperatureC,
-                "C");
-
-            await _cloudApiClient.UploadTelemetryAsync(
-                SerialNumber,
-                "MachineHours",
-                diagnostics.MachineHours,
-                "hours");
-
-            Battery =
-                $"{diagnostics.BatteryPercent}% / {diagnostics.BatteryVoltage:F1} V";
-
-            ControllerTemperature =
-                $"{diagnostics.ControllerTemperatureC:F1} °C";
-
-            MachineHours =
-                $"{diagnostics.MachineHours:F1}";
-
-            Faults =
-                string.Join(
-                    Environment.NewLine,
-                    diagnostics.FaultCodes);
+            ConfigurationStatus =
+                "Configuration loaded";
         }
         catch (Exception ex)
         {
-            ResetConnectionState();
-
-            ConnectionStatus = "Connection lost";
-            ErrorMessage = ex.Message;
+            HandleDeviceFailure(ex);
         }
-}
-    
-    private async Task LoadConfigurationAsync()
-    {
-        if (!IsConnected)
-        {
-            return;
-        }
-
-        var configuration =
-            await _deviceTransport.ReadConfigurationAsync();
-
-        EcoMode = configuration.EcoMode;
-        BrushPressureLevel = configuration.BrushPressureLevel;
-        MaxSpeedPercent = configuration.MaxSpeedPercent;
-
-        ConfigurationStatus = "Configuration loaded";
     }
 
     private async Task SaveConfigurationAsync()
@@ -220,26 +269,40 @@ public partial class MainViewModel : ViewModelBase
             return;
         }
 
+        ErrorMessage = "";
+
         var configuration = new MachineConfiguration(
             EcoMode,
             BrushPressureLevel,
             MaxSpeedPercent);
 
-        await _deviceTransport.UpdateConfigurationAsync(configuration);
+        try
+        {
+            await _deviceTransport
+                .UpdateConfigurationAsync(configuration);
 
-        ConfigurationStatus = "Configuration saved";
+            ConfigurationStatus =
+                "Configuration saved";
+        }
+        catch (Exception ex)
+        {
+            HandleDeviceFailure(ex);
+        }
     }
 
-    private async Task UpdateFirmwareAsync(CancellationToken cancellationToken)
+    private async Task UpdateFirmwareAsync(
+        CancellationToken cancellationToken)
     {
         if (!IsConnected || IsFirmwareUpdating)
         {
             return;
         }
 
+        ErrorMessage = "";
         IsFirmwareUpdating = true;
         FirmwareProgress = 0;
-        FirmwareUpdateStatus = "Programming firmware...";
+        FirmwareUpdateStatus =
+            "Programming firmware...";
 
         try
         {
@@ -252,16 +315,20 @@ public partial class MainViewModel : ViewModelBase
                     cancellationToken);
 
             FirmwareVersion = newVersion;
-            FirmwareUpdateStatus = "Firmware update completed";
+            FirmwareUpdateStatus =
+                "Firmware update completed";
         }
         catch (OperationCanceledException)
         {
-            FirmwareUpdateStatus = "Firmware update cancelled";
+            FirmwareUpdateStatus =
+                "Firmware update cancelled";
         }
         catch (Exception ex)
         {
             FirmwareUpdateStatus =
                 $"Firmware update failed: {ex.Message}";
+
+            HandleDeviceFailure(ex);
         }
         finally
         {
@@ -269,7 +336,16 @@ public partial class MainViewModel : ViewModelBase
         }
     }
 
-    private void ResetConnectionState() {
+    private void HandleDeviceFailure(Exception exception)
+    {
+        ResetConnectionState();
+
+        ConnectionStatus = "Connection lost";
+        ErrorMessage = exception.Message;
+    }
+
+    private void ResetConnectionState()
+    {
         IsConnected = false;
 
         Model = "-";
