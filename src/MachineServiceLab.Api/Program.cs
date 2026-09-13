@@ -6,19 +6,23 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-var sqlConnection = builder.Configuration
-    .GetConnectionString("MachineServiceLab")
+var sqlConnection =
+    builder.Configuration.GetConnectionString("MachineServiceLab")
+    ?? builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
     ?? throw new InvalidOperationException(
-        "Connection string 'MachineServiceLab' is required.");
+        "SQL connection string is required.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         sqlConnection,
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
+builder.Services
+    .AddHealthChecks()
+    .AddDbContextCheck<AppDbContext>("database");
+
 var applicationInsightsConnection =
-    Environment.GetEnvironmentVariable(
-        "APPLICATIONINSIGHTS_CONNECTION_STRING");
+    builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 
 if (!string.IsNullOrWhiteSpace(applicationInsightsConnection))
 {
@@ -30,5 +34,6 @@ if (!string.IsNullOrWhiteSpace(applicationInsightsConnection))
 var app = builder.Build();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

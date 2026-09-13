@@ -5,15 +5,6 @@ namespace MachineServiceLab.Api.Controllers;
 [ApiController]
 public sealed class PlatformController : ControllerBase
 {
-    [HttpGet("/health")]
-    public ActionResult GetHealth()
-    {
-        return Ok(new
-        {
-            status = "Healthy"
-        });
-    }
-
     [HttpGet("/api/platform")]
     public ActionResult GetPlatform()
     {
