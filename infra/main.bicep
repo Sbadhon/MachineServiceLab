@@ -19,10 +19,10 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
-  }
 
-  sku: {
-    name: 'PerGB2018'
+    sku: {
+      name: 'PerGB2018'
+    }
   }
 }
 
