@@ -31,13 +31,13 @@ public sealed class TcpDeviceTransport : IDeviceTransport
                 7001,
                 timeout.Token);
 
-        var stream = _client.GetStream();
+            var stream = _client.GetStream();
 
-        _reader = new StreamReader(stream);
-        _writer = new StreamWriter(stream)
-        {
-            AutoFlush = true
-        };
+            _reader = new StreamReader(stream);
+            _writer = new StreamWriter(stream)
+            {
+                AutoFlush = true
+            };
 
             var response = await SendAsync("INFO");
             var parts = response.Split('|');
@@ -136,32 +136,48 @@ public sealed class TcpDeviceTransport : IDeviceTransport
     {
         EnsureConnected();
 
-        await _writer!.WriteLineAsync("FIRMWARE");
-
-        while (true)
+        try
         {
-            var response = await ReadLineAsync(cancellationToken);
-            var parts = response.Split('|');
+            await _writer!.WriteLineAsync("FIRMWARE");
 
-            if (parts.Length == 2 &&
-                parts[0] == "PROGRESS" &&
-                int.TryParse(parts[1], out var percent))
+            while (true)
             {
-                progress.Report(percent);
-                continue;
-            }
+                var response = await ReadLineAsync(cancellationToken);
+                var parts = response.Split('|');
 
-            if (parts.Length == 2 &&
-                parts[0] == "FIRMWARE_COMPLETE")
-            {
-                return parts[1];
-            }
+                if (parts.Length == 2 &&
+                    parts[0] == "PROGRESS" &&
+                    int.TryParse(
+                        parts[1],
+                        NumberStyles.None,
+                        CultureInfo.InvariantCulture,
+                        out var percent))
+                {
+                    progress.Report(percent);
+                    continue;
+                }
 
-            throw new InvalidDataException(
-                "Invalid firmware response.");
+                if (parts.Length == 2 &&
+                    parts[0] == "FIRMWARE_COMPLETE")
+                {
+                    return parts[1];
+                }
+
+                throw new InvalidDataException(
+                    "Invalid firmware response.");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            await CleanupAsync();
+            throw;
+        }
+        catch
+        {
+            await CleanupAsync();
+            throw;
         }
     }
-
     private async Task<string> SendAsync(string command)
     {
         EnsureConnected();

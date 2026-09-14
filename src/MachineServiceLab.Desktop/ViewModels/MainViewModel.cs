@@ -322,6 +322,11 @@ public partial class MainViewModel : ViewModelBase
         {
             FirmwareUpdateStatus =
                 "Firmware update cancelled";
+
+            ResetConnectionState();
+
+            ConnectionStatus =
+                "Disconnected - reconnect required";
         }
         catch (Exception ex)
         {

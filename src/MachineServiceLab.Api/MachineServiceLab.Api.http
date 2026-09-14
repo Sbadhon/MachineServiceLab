@@ -1,6 +1,55 @@
-@MachineServiceLab.Api_HostAddress = http://localhost:5163
+@host = http://localhost:5163
+@serialNumber = MSL-100001
 
-GET {{MachineServiceLab.Api_HostAddress}}/weatherforecast/
+### Platform
+
+GET {{host}}/api/platform
 Accept: application/json
 
-###
+### Health
+
+GET {{host}}/health
+Accept: application/json
+
+### Register machine
+
+POST {{host}}/api/machines
+Content-Type: application/json
+
+{
+  "serialNumber": "{{serialNumber}}",
+  "model": "Scrubber-X1",
+  "firmwareVersion": "1.0.0"
+}
+
+### Get machine
+
+GET {{host}}/api/machines/{{serialNumber}}
+Accept: application/json
+
+### Upload diagnostics
+
+POST {{host}}/api/diagnostics
+Content-Type: application/json
+
+{
+  "serialNumber": "{{serialNumber}}",
+  "batteryPercent": 81,
+  "batteryVoltage": 37.8,
+  "controllerTemperatureC": 42.5,
+  "machineHours": 1432.7,
+  "faultCodes": [
+    "F102 - Brush Motor Overcurrent",
+    "F208 - Battery Voltage Low"
+  ]
+}
+
+### Latest diagnostics
+
+GET {{host}}/api/machines/{{serialNumber}}/diagnostics/latest
+Accept: application/json
+
+### Telemetry
+
+GET {{host}}/api/machines/{{serialNumber}}/telemetry
+Accept: application/json

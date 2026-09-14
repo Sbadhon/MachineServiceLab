@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
 
 var sqlConnection =
     builder.Configuration.GetConnectionString("MachineServiceLab")
@@ -21,10 +22,8 @@ builder.Services
     .AddHealthChecks()
     .AddDbContextCheck<AppDbContext>("database");
 
-var applicationInsightsConnection =
-    builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
-
-if (!string.IsNullOrWhiteSpace(applicationInsightsConnection))
+if (!string.IsNullOrWhiteSpace(
+        builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
 {
     builder.Services
         .AddOpenTelemetry()
@@ -32,6 +31,8 @@ if (!string.IsNullOrWhiteSpace(applicationInsightsConnection))
 }
 
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
